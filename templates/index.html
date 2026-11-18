@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asteroid Trajectory & Earth Risk Analysis</title>
+  
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Three.js 3D Library & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <!-- Plotly Scientific Charting -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  
+  <!-- Dashboard Styling -->
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-icon-wrapper">
+          <i class="fa-solid fa-satellite"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">Asteroid Trajectory & Earth Risk Analysis</h1>
+          <div class="brand-subtitle">NASA / JPL Near-Earth Object Monitoring & Machine Learning Risk System</div>
+        </div>
+      </div>
+      
+      <div class="header-status-group">
+        <div class="telemetry-pill" title="Synchronized with NASA JPL Small-Body Database, Sentry & CAD feeds">
+          <span class="pulse-dot"></span>
+          <span>NASA JPL DATA SNAPSHOT (5,986 NEAs)</span>
+        </div>
+        
+        <button id="btn-refresh-data" class="refresh-btn" title="Trigger background refresh of NASA JPL APIs">
+          <i class="fa-solid fa-arrows-rotate"></i> Sync Data
+        </button>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="app-nav-tabs">
+      <div class="nav-tab-item active" data-tab="overview">
+        <i class="fa-solid fa-gauge-high"></i> Overview & Alerts
+      </div>
+      <div class="nav-tab-item" data-tab="catalog">
+        <i class="fa-solid fa-table-list"></i> Asteroid Catalog
+      </div>
+      <div class="nav-tab-item" data-tab="orbit">
+        <i class="fa-solid fa-circle-nodes"></i> 3D Keplerian Trajectory
+      </div>
+      <div class="nav-tab-item" data-tab="predictor">
+        <i class="fa-solid fa-brain"></i> Risk Classifier & Predictor
+      </div>
+      <div class="nav-tab-item" data-tab="eda">
+        <i class="fa-solid fa-chart-line"></i> Exploratory Data Analysis
+      </div>
+      <div class="nav-tab-item" data-tab="models">
+        <i class="fa-solid fa-microchip"></i> Model Benchmarks
+      </div>
+      <div class="nav-tab-item" data-tab="sources">
+        <i class="fa-solid fa-book-atlas"></i> Sources & Limitations
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+      <!-- =========================================================
+           TAB 1: OVERVIEW & ALERTS
+           ========================================================= -->
+      <section id="tab-overview" class="tab-pane active">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-radar text-accent"></i> Near-Earth Object Fleet Telemetry</h2>
+            <p class="section-desc">Continuous orbital monitoring, impact probability evaluation, and machine learning hazard classification.</p>
+          </div>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Monitored Asteroids</span>
+              <div class="metric-icon"><i class="fa-solid fa-meteor"></i></div>
+            </div>
+            <div class="metric-value" id="stat-total-monitored">5,986</div>
+            <div class="metric-sub info"><i class="fa-solid fa-circle-check"></i> Complete orbital elements</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Potentially Hazardous (PHAs)</span>
+              <div class="metric-icon" style="color: #f87171;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            </div>
+            <div class="metric-value" id="stat-pha-count">2,550</div>
+            <div class="metric-sub danger"><i class="fa-solid fa-shield-halved"></i> MOID &le; 0.05 AU &amp; H &le; 22</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">NASA Sentry Impact Targets</span>
+              <div class="metric-icon" style="color: #fbbf24;"><i class="fa-solid fa-satellite-dish"></i></div>
+            </div>
+            <div class="metric-value" id="stat-sentry-count">48</div>
+            <div class="metric-sub warning"><i class="fa-solid fa-bullseye"></i> Active automated impact monitoring</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Close Approaches (&lt; 0.08 AU)</span>
+              <div class="metric-icon" style="color: #34d399;"><i class="fa-solid fa-route"></i></div>
+            </div>
+            <div class="metric-value" id="stat-cad-count">19</div>
+            <div class="metric-sub success"><i class="fa-solid fa-clock"></i> Upcoming encounter geometry</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Mean Encounter Velocity</span>
+              <div class="metric-icon"><i class="fa-solid fa-gauge-simple-high"></i></div>
+            </div>
+            <div class="metric-value" id="stat-avg-velocity">19.8 km/s</div>
+            <div class="metric-sub info"><i class="fa-solid fa-bolt"></i> Öpik-Tisserand velocity proxy</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-header">
+              <span class="metric-label">Minimum Fleet MOID</span>
+              <div class="metric-icon"><i class="fa-solid fa-arrows-to-circle"></i></div>
+            </div>
+            <div class="metric-value" id="stat-min-moid">0.00007 AU</div>
+            <div class="metric-sub danger"><i class="fa-solid fa-circle-exclamation"></i> Approx 0.03 Lunar Distances</div>
+          </div>
+        </div>
+
+        <!-- Critical Alerts Carousel -->
+        <div class="alerts-banner-container">
+          <div class="alerts-header">
+            <div class="alerts-title">
+              <i class="fa-solid fa-bell fa-shake"></i> Critical Planetary Defense Alert Objects
+            </div>
+            <div style="font-size: 0.775rem; color: #94a3b8;">
+              Click any card to inspect full orbital parameters, Sentry risk ratings, and 3D trajectory
+            </div>
+          </div>
+          <div id="alerts-carousel" class="alerts-carousel">
+            <!-- Dynamic Alert Cards -->
+          </div>
+        </div>
+
+        <!-- System Architecture & Pipeline Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem;">
+          <div class="metric-card" style="padding: 1.5rem;">
+            <div style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-database text-accent"></i> Real NASA JPL SSD Data Pipeline
+            </div>
+            <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6;">
+              Ingests verified observations from the NASA JPL Small-Body Database (SBDB), the automated Sentry Earth Impact Monitoring System, and high-precision Close Approach Data (CAD). Employs photometric diameter calculations and rigorous schema checks.
+            </p>
+          </div>
+
+          <div class="metric-card" style="padding: 1.5rem;">
+            <div style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-brain" style="color: #a855f7;"></i> Machine Learning Classification
+            </div>
+            <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6;">
+              Features our champion <b>Gradient Boosting Model (99.75% Accuracy, 99.99% PR-AUC)</b> alongside Random Forest, Deep Learning Multi-Layer Perceptrons, and Logistic Regression baselines. Evaluates orbital mechanics geometry while clearly distinguishing model estimates from authoritative Sentry solutions.
+            </p>
+          </div>
+
+          <div class="metric-card" style="padding: 1.5rem;">
+            <div style="font-weight: 700; font-size: 1rem; color: #fff; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-circle-nodes" style="color: #38bdf8;"></i> Keplerian Trajectory Propagation
+            </div>
+            <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6;">
+              Interactive 3D orbital mechanics engine solving Kepler's equation for any near-Earth asteroid over selectable time windows. Displays real heliocentric 3D paths, Earth orbital geometry, close-approach intersections, and distance telemetry.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 2: ASTEROID CATALOG & DEEP INSPECTION
+           ========================================================= -->
+      <section id="tab-catalog" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-table-list text-accent"></i> Near-Earth Asteroid Catalog</h2>
+            <p class="section-desc">Search, filter, and inspect 5,986 cataloged near-Earth asteroids with authoritative status and machine learning predictions.</p>
+          </div>
+        </div>
+
+        <div class="catalog-card">
+          <!-- Toolbar & Filters -->
+          <div class="catalog-toolbar">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="catalog-search-input" class="search-input" placeholder="Search by name, designation (e.g. Apophis, 2024 YR4, 433)...">
+            </div>
+
+            <div class="filters-row">
+              <select id="catalog-class-select" class="filter-select" title="Filter by Orbit Class">
+                <option value="ALL">All Orbit Classes</option>
+                <option value="APO">Apollo (Earth-Crossing, a &gt; 1.0 AU)</option>
+                <option value="AMO">Amor (External, 1.017 &lt; q &lt; 1.3 AU)</option>
+                <option value="ATE">Aten (Earth-Crossing, a &lt; 1.0 AU)</option>
+                <option value="IEO">Atira / IEO (Interior to Earth)</option>
+              </select>
+
+              <button id="filter-pha-only" class="filter-pill-btn">
+                <i class="fa-solid fa-triangle-exclamation"></i> PHAs Only
+              </button>
+
+              <button id="filter-sentry-only" class="filter-pill-btn">
+                <i class="fa-solid fa-satellite-dish"></i> Sentry Targets
+              </button>
+
+              <button id="filter-cad-only" class="filter-pill-btn">
+                <i class="fa-solid fa-route"></i> Close Approaches
+              </button>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-sort="full_name">Asteroid Designation <i class="fa-solid fa-sort"></i></th>
+                  <th data-sort="class">Orbit Class <i class="fa-solid fa-sort"></i></th>
+                  <th data-sort="H">Mag (H) <i class="fa-solid fa-sort"></i></th>
+                  <th data-sort="diameter_estimated_km">Diameter (Est) <i class="fa-solid fa-sort"></i></th>
+                  <th data-sort="moid">Earth MOID <i class="fa-solid fa-sort"></i></th>
+                  <th data-sort="relative_velocity_kms">Encounter Velocity <i class="fa-solid fa-sort"></i></th>
+                  <th>Risk Flags</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-table-body">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination Bar -->
+          <div class="pagination-bar">
+            <div id="catalog-pagination-info">Showing objects...</div>
+            <div class="pagination-controls">
+              <button id="catalog-prev-btn" class="page-btn"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+              <button id="catalog-next-btn" class="page-btn">Next <i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 3: 3D KEPLERIAN TRAJECTORY VISUALIZER
+           ========================================================= -->
+      <section id="tab-orbit" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-circle-nodes text-accent"></i> 3D Keplerian Orbit Visualizer</h2>
+            <p class="section-desc">Interactive orbital mechanics simulation in heliocentric ecliptic coordinates solving Kepler's equation over time.</p>
+          </div>
+          <div style="font-size: 0.8rem; color: #94a3b8; display: flex; align-items: center; gap: 0.4rem;">
+            <i class="fa-solid fa-mouse"></i> Click + Drag to rotate | Right-click to pan | Scroll to zoom
+          </div>
+        </div>
+
+        <div class="orbit-viz-container">
+          <!-- 3D Canvas Card -->
+          <div class="canvas-card">
+            <!-- Overlay Camera Controls -->
+            <div class="canvas-overlay-controls">
+              <button id="btn-reset-cam" class="canvas-btn"><i class="fa-solid fa-video"></i> Reset View</button>
+              <button id="btn-top-cam" class="canvas-btn"><i class="fa-solid fa-arrows-to-dot"></i> Top View (Ecliptic)</button>
+              <button id="btn-side-cam" class="canvas-btn"><i class="fa-solid fa-border-all"></i> Edge View</button>
+              <button id="btn-play-orbit" class="canvas-btn" style="background: rgba(99, 102, 241, 0.4); border-color: #6366f1;">
+                <i class="fa-solid fa-play"></i> Animate Orbit
+              </button>
+            </div>
+
+            <!-- Legend Overlay -->
+            <div class="canvas-legend-overlay">
+              <div class="legend-item"><div class="legend-color-dot" style="background: #fbbf24;"></div> <span>The Sun (Origin)</span></div>
+              <div class="legend-item"><div class="legend-color-dot" style="background: #38bdf8;"></div> <span>Earth Orbit (1.0 AU)</span></div>
+              <div class="legend-item"><div class="legend-color-dot" style="background: #ef4444;"></div> <span>Asteroid Orbit (Target)</span></div>
+              <div class="legend-item"><div class="legend-color-dot" style="background: #f97316; opacity: 0.5;"></div> <span>Mars Reference (1.52 AU)</span></div>
+            </div>
+
+            <!-- Three.js Canvas Container -->
+            <div id="three-orbit-canvas"></div>
+
+            <!-- Disclaimer Banner -->
+            <div style="background: rgba(11, 17, 32, 0.9); border-top: 1px solid var(--border-subtle); padding: 0.6rem 1rem; font-size: 0.725rem; color: #94a3b8; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-circle-info text-accent"></i>
+              <span><b>Scientific Notice:</b> 2-body Keplerian propagation for geometrical visualization. High-precision mission planning utilizes NASA JPL Horizons N-body numerical integration.</span>
+            </div>
+          </div>
+
+          <!-- Controls & Telemetry Sidebar -->
+          <div class="orbit-sidebar-card">
+            <div class="orbit-sidebar-title">
+              <i class="fa-solid fa-sliders text-accent"></i> Trajectory Parameters
+            </div>
+
+            <!-- Target Selection -->
+            <div class="orbit-form-group">
+              <label class="orbit-form-label">Target Asteroid</label>
+              <select id="orbit-target-select" class="orbit-form-select">
+                <option value="99942">99942 Apophis (Critical PHA)</option>
+                <option value="101955">101955 Bennu (Sentry Monitored)</option>
+                <option value="433">433 Eros (Amor Prototype)</option>
+                <option value="1566">1566 Icarus (Sun-Grazer PHA)</option>
+                <option value="4179">4179 Toutatis (Earth Crosser)</option>
+                <option value="29075">29075 1950 DA (Long-Term Risk)</option>
+              </select>
+            </div>
+
+            <!-- Target Name Banner -->
+            <div style="background: var(--bg-darkest); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-size: 0.7rem; color: #64748b; text-transform: uppercase;">Active Target</div>
+              <div id="orbit-asteroid-name" style="font-size: 0.95rem; font-weight: 700; color: #fff;">99942 Apophis</div>
+            </div>
+
+            <!-- Time Window Selector -->
+            <div class="orbit-form-group">
+              <label class="orbit-form-label">Simulation Time Window</label>
+              <div style="display: flex; gap: 0.35rem;">
+                <button class="canvas-btn orbit-window-btn" data-days="90">90 D</button>
+                <button class="canvas-btn orbit-window-btn active" data-days="180">180 D</button>
+                <button class="canvas-btn orbit-window-btn" data-days="365">1 Yr</button>
+                <button class="canvas-btn orbit-window-btn" data-days="730">2 Yr</button>
+              </div>
+            </div>
+
+            <!-- Time Scrub Slider -->
+            <div class="orbit-form-group time-slider-wrapper">
+              <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.25rem;">
+                <span>Time Scrubbing</span>
+                <span id="tel-days-offset" style="color: #38bdf8; font-family: var(--font-mono); font-weight: 600;">+0 days</span>
+              </div>
+              <input type="range" id="time-scrub-slider" class="time-slider" min="0" max="90" value="0">
+            </div>
+
+            <!-- Live Distance Telemetry Box -->
+            <div class="telemetry-display-box">
+              <div style="font-size: 0.75rem; font-weight: 600; color: #38bdf8; margin-bottom: 0.5rem; text-transform: uppercase;">
+                <i class="fa-solid fa-satellite"></i> Real-Time Distance &amp; Flyby Telemetry
+              </div>
+              <div class="telemetry-row">
+                <span class="tel-label">Simulation Date:</span>
+                <span id="tel-current-date" class="tel-val">--</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="tel-label">Distance (AU):</span>
+                <span id="tel-dist-au" class="tel-val">--</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="tel-label">Distance (Lunar Distances):</span>
+                <span id="tel-dist-ld" class="tel-val">--</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="tel-label">Distance (Kilometers):</span>
+                <span id="tel-dist-km" class="tel-val">--</span>
+              </div>
+              <div class="telemetry-row">
+                <span class="tel-label">True Anomaly (&nu;):</span>
+                <span id="tel-true-anomaly" class="tel-val">--</span>
+              </div>
+            </div>
+
+            <!-- Orbital Elements Box -->
+            <div class="telemetry-display-box">
+              <div style="font-size: 0.75rem; font-weight: 600; color: #a855f7; margin-bottom: 0.5rem; text-transform: uppercase;">
+                <i class="fa-solid fa-atom"></i> Orbital Elements
+              </div>
+              <div class="telemetry-row"><span class="tel-label">Semi-Major Axis (a):</span><span id="orb-param-a" class="tel-val">--</span></div>
+              <div class="telemetry-row"><span class="tel-label">Eccentricity (e):</span><span id="orb-param-e" class="tel-val">--</span></div>
+              <div class="telemetry-row"><span class="tel-label">Inclination (i):</span><span id="orb-param-i" class="tel-val">--</span></div>
+              <div class="telemetry-row"><span class="tel-label">Perihelion (q):</span><span id="orb-param-q" class="tel-val">--</span></div>
+              <div class="telemetry-row"><span class="tel-label">Orbital Period:</span><span id="orb-param-per" class="tel-val">--</span></div>
+              <div class="telemetry-row"><span class="tel-label">Closest Approach in Window:</span><span id="orb-min-encounter" class="tel-val text-warning">--</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 4: PLANETARY DEFENSE RISK PREDICTOR
+           ========================================================= -->
+      <section id="tab-predictor" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-brain text-accent"></i> Planetary Defense Risk Classifier</h2>
+            <p class="section-desc">Run machine learning hazard predictions, test orbital what-if scenarios, and inspect local explainability attributions.</p>
+          </div>
+        </div>
+
+        <div class="predictor-grid">
+          <!-- Input Form Card -->
+          <div class="prediction-form-card">
+            <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+              Asteroid Input Parameters
+            </div>
+
+            <!-- Presets -->
+            <div style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.5rem;">Load Astronomical Preset:</div>
+            <div class="preset-selector-bar">
+              <button type="button" class="preset-chip active" data-preset="apophis">99942 Apophis</button>
+              <button type="button" class="preset-chip" data-preset="bennu">101955 Bennu</button>
+              <button type="button" class="preset-chip" data-preset="tunguska">Tunguska Bolide</button>
+              <button type="button" class="preset-chip" data-preset="eros">433 Eros</button>
+            </div>
+
+            <form id="custom-prediction-form">
+              <div class="form-two-col">
+                <div class="orbit-form-group">
+                  <label class="orbit-form-label">Absolute Mag (H) [mag]</label>
+                  <input type="number" id="pred-h" class="orbit-form-input" step="0.01" min="5" max="35" required>
+                  <span style="font-size: 0.7rem; color: #64748b;">H &le; 22 corresponds to &ge; ~140m</span>
+                </div>
+
+                <div class="orbit-form-group">
+                  <label class="orbit-form-label">Diameter [km, optional]</label>
+                  <input type="number" id="pred-diameter" class="orbit-form-input" step="0.001" min="0.001" placeholder="Auto-calculated from H">
+                  <span style="font-size: 0.7rem; color: #64748b;">Photometric estimation if blank</span>
+                </div>
+              </div>
+
+              <div class="form-two-col">
+                <div class="orbit-form-group">
+                  <label class="orbit-form-label">Earth MOID [AU]</label>
+                  <input type="number" id="pred-moid" class="orbit-form-input" step="0.0001" min="0" max="5" required>
+                  <span style="font-size: 0.7rem; color: #64748b;">Critical threshold: &le; 0.05 AU</span>
+                </div>
+
+                <div class="orbit-form-group">
+                  <label class="orbit-form-label">Orbit Class</label>
+                  <select id="pred-class" class="orbit-form-select">
+                    <option value="APO">Apollo (Earth Crosser, a &ge; 1.0)</option>
+                    <option value="ATE">Aten (Earth Crosser, a &lt; 1.0)</option>
+                    <option value="AMO">Amor (Mars Crosser)</option>
+                    <option value="IEO">Atira (Inside Earth Orbit)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-two-col">
+                <div class="orbit-form-group">
+                  <label class="orbit-form-label">Semi-Major Axis (a) [AU]</label>
+                  <input type="number" id="pred-a" class="orbit-form-input" step="0.0001" min="0.1" max="10" required>
+                </div>
+
+                <div class="orbit-form-group">
+                  <label class="orbit-form-label">Eccentricity (e)</label>
+                  <input type="number" id="pred-e" class="orbit-form-input" step="0.0001" min="0" max="0.999" required>
+                </div>
+              </div>
+
+              <div class="form-two-col">
+                <div class="orbit-form-group">
+                  <label class="orbit-form-label">Inclination (i) [degrees]</label>
+                  <input type="number" id="pred-i" class="orbit-form-input" step="0.01" min="0" max="180" required>
+                </div>
+
+                <div class="orbit-form-group" style="justify-content: flex-end;">
+                  <button type="submit" id="btn-run-prediction" class="btn-primary-gradient">
+                    <i class="fa-solid fa-brain"></i> Run Risk Inference
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Results & Explainability Card -->
+          <div id="prediction-results-area" class="prediction-results-card">
+            <div style="text-align: center; padding: 3rem; color: #94a3b8;">
+              <i class="fa-solid fa-satellite fa-spin fa-2x"></i><br><br>
+              Select parameters and click "Run Risk Inference" to evaluate hazard probability.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 5: EXPLORATORY DATA ANALYSIS (EDA)
+           ========================================================= -->
+      <section id="tab-eda" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-chart-line text-accent"></i> Exploratory Data Analysis (EDA)</h2>
+            <p class="section-desc">Empirical distributions, orbital intersections, and correlation structures across 5,986 observed near-Earth asteroids.</p>
+          </div>
+        </div>
+
+        <div class="charts-grid-2col">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Earth MOID vs. Estimated Diameter (Log Scale)</h3>
+              <p class="chart-subtitle">Core astronomical boundary separating Potentially Hazardous Asteroids (MOID &le; 0.05 AU, D &ge; 140m)</p>
+            </div>
+            <div id="chart-moid-diameter-scatter" class="chart-body"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Near-Earth Asteroid Class Distribution</h3>
+              <p class="chart-subtitle">Apollo (Earth-crossing), Amor (perihelion outside Earth), Aten (interior orbit), Atira (IEO)</p>
+            </div>
+            <div id="chart-orbit-classes-donut" class="chart-body"></div>
+          </div>
+        </div>
+
+        <div class="charts-grid-2col">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Absolute Magnitude (H) Distribution</h3>
+              <p class="chart-subtitle">Inversely proportional to physical diameter; peaking around H=20 to H=26</p>
+            </div>
+            <div id="chart-h-distribution" class="chart-body"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Encounter Velocity Distribution</h3>
+              <p class="chart-subtitle">Öpik-Tisserand relative velocity (km/s) distribution with respect to Earth's orbital speed</p>
+            </div>
+            <div id="chart-vel-distribution" class="chart-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 6: MODEL BENCHMARKS & EXPLAINABILITY
+           ========================================================= -->
+      <section id="tab-models" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-microchip text-accent"></i> Model Evaluation &amp; Benchmarks</h2>
+            <p class="section-desc">Rigorous cross-model evaluation comparing baselines, ensembles, and deep neural networks on unseen test data.</p>
+          </div>
+        </div>
+
+        <!-- Benchmark Comparison Table Card -->
+        <div class="catalog-card" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+          <div style="font-weight: 700; font-size: 1.05rem; color: #fff; margin-bottom: 0.25rem;">
+            Candidate Model Performance Comparison (Evaluated on Unseen 20% Test Split)
+          </div>
+          <div style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">
+            Selection criteria prioritize PR-AUC and Recall to minimize catastrophic false negatives in planetary defense risk scoring.
+          </div>
+
+          <div class="table-responsive">
+            <table class="benchmark-table">
+              <thead>
+                <tr>
+                  <th>Model Architecture</th>
+                  <th>Accuracy</th>
+                  <th>Precision</th>
+                  <th>Recall</th>
+                  <th>F1-Score</th>
+                  <th>ROC-AUC</th>
+                  <th>PR-AUC</th>
+                  <th>Brier Score</th>
+                  <th>Confusion Matrix</th>
+                </tr>
+              </thead>
+              <tbody id="models-benchmark-tbody">
+                <!-- Dynamically loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ROC & PR Curves -->
+        <div class="charts-grid-2col">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Receiver Operating Characteristic (ROC) Curves</h3>
+              <p class="chart-subtitle">True Positive Rate vs. False Positive Rate across decision thresholds</p>
+            </div>
+            <div id="chart-roc-curves" class="chart-body"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Precision-Recall (PR) Curves</h3>
+              <p class="chart-subtitle">Crucial metric for imbalanced planetary risk classification (high PR-AUC minimizes missed PHAs)</p>
+            </div>
+            <div id="chart-pr-curves" class="chart-body"></div>
+          </div>
+        </div>
+
+        <!-- Calibration & Feature Importance -->
+        <div class="charts-grid-2col">
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Model Calibration (Reliability Diagram)</h3>
+              <p class="chart-subtitle">Mean predicted probability vs. observed fraction of hazardous asteroids</p>
+            </div>
+            <div id="chart-calibration-curves" class="chart-body"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3 class="chart-title">Global Feature Importance (Champion GBM Model)</h3>
+              <p class="chart-subtitle">Quantified influence of astronomical and orbital features in predicting hazard status</p>
+            </div>
+            <div id="chart-feature-importance" class="chart-body"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 7: SOURCES, METHODOLOGY & LIMITATIONS
+           ========================================================= -->
+      <section id="tab-sources" class="tab-pane">
+        <div class="section-header">
+          <div>
+            <h2 class="section-title"><i class="fa-solid fa-book-atlas text-accent"></i> Data Sources, Methodology &amp; Limitations</h2>
+            <p class="section-desc">Documented scientific provenance, astronomical formulas, and physical limitations.</p>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Sources Card -->
+          <div class="metric-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-satellite-dish text-accent"></i> Authoritative NASA / JPL Sources
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;">
+              <div style="background: var(--bg-darkest); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                <div style="font-weight: 700; color: #fff;">1. Small-Body Database (SBDB) Query API</div>
+                <div style="font-size: 0.775rem; color: #38bdf8; margin-top: 0.2rem;">ssd-api.jpl.nasa.gov/sbdb_query.api</div>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.5rem;">
+                  Provides high-precision osculating Keplerian orbital elements (a, e, i, &Omega;, &omega;, M, epoch), physical properties (H, diameter, albedo), and official PHA classifications for all cataloged small bodies.
+                </p>
+              </div>
+
+              <div style="background: var(--bg-darkest); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                <div style="font-weight: 700; color: #fff;">2. Sentry Earth Impact Monitoring System</div>
+                <div style="font-size: 0.775rem; color: #38bdf8; margin-top: 0.2rem;">ssd-api.jpl.nasa.gov/sentry.api</div>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.5rem;">
+                  Automated collision monitoring system continuously scanning potential asteroid impact solutions over the next 100+ years, reporting Palermo Technical Scale, Torino Scale, and cumulative impact probabilities.
+                </p>
+              </div>
+
+              <div style="background: var(--bg-darkest); padding: 1rem; border-radius: 8px; border: 1px solid var(--border-subtle);">
+                <div style="font-weight: 700; color: #fff;">3. Close Approach Data (CAD) API</div>
+                <div style="font-size: 0.775rem; color: #38bdf8; margin-top: 0.2rem;">ssd-api.jpl.nasa.gov/cad.api</div>
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.5rem;">
+                  Provides verified flyby encounters to Earth, reporting calendar date/time, nominal miss distance (AU and Lunar Distances), and relative velocity (km/s).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mathematical Methodology Card -->
+          <div class="metric-card" style="padding: 1.5rem;">
+            <h3 style="font-size: 1.1rem; color: #fff; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-calculator" style="color: #a855f7;"></i> Physical &amp; Astronomical Formulations
+            </h3>
+            <div style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.7; display: flex; flex-direction: column; gap: 1rem;">
+              <div>
+                <b>1. NASA Photometric Diameter Estimation:</b><br>
+                For asteroids lacking direct thermal infrared (NEOWISE) or radar imaging, diameter is calculated from absolute magnitude <code>H</code> and geometric albedo <code>p<sub>v</sub></code> (default 0.14):<br>
+                <code style="background: #020408; padding: 0.25rem 0.5rem; border-radius: 4px; color: #38bdf8;">D = (1329 / &radic;p<sub>v</sub>) &times; 10<sup>-0.2 H</sup> [km]</code>
+              </div>
+
+              <div>
+                <b>2. Öpik-Tisserand Encounter Velocity:</b><br>
+                Encounter velocity relative to Earth is approximated using Öpik's formula in units of Earth's orbital velocity (v<sub>E</sub> &approx; 29.78 km/s):<br>
+                <code style="background: #020408; padding: 0.25rem 0.5rem; border-radius: 4px; color: #38bdf8;">v<sub>rel</sub> = &radic;(3 - 1/a - 2&radic;(a(1-e<sup>2</sup>))cos(i)) &times; 29.78 km/s</code>
+              </div>
+
+              <div>
+                <b>3. Impact Kinetic Energy:</b><br>
+                Estimated assuming mean spherical volume, typical S-type/C-type asteroid density &rho; = 2,500 kg/m<sup>3</sup>, and encounter velocity v = 20 km/s:<br>
+                <code style="background: #020408; padding: 0.25rem 0.5rem; border-radius: 4px; color: #38bdf8;">E<sub>k</sub> = 0.5 &times; M &times; v<sup>2</sup>, &nbsp; (1 Megaton TNT = 4.184 &times; 10<sup>15</sup> J)</code>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scientific Limitations & Planetary Defense Ethics -->
+          <div class="metric-card" style="padding: 1.5rem; border-left: 4px solid #f59e0b;">
+            <h3 style="font-size: 1.1rem; color: #fbbf24; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-triangle-exclamation"></i> Scientific Limitations &amp; Ethical Distinctions
+            </h3>
+            <ul style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.8; margin-left: 1.5rem;">
+              <li><b>Model Classification vs. Definitive Impact Forecasts:</b> Our machine learning models classify an asteroid's geometric hazard potential based on orbital intersection distance (MOID) and physical size (H/diameter). A high model hazard probability does <i>not</i> mean an immediate impact will occur tomorrow; it identifies objects requiring rigorous astrometric follow-up.</li>
+              <li><b>Authoritative Sentry Status:</b> Official Earth impact risk is calculated exclusively through NASA JPL Sentry and ESA NEODyS, which perform full N-body numerical integration with orbit covariance error ellipsoids and non-gravitational Yarkovsky forces.</li>
+              <li><b>2-Body Keplerian Orbit Visualizer:</b> The 3D trajectory viewer propagates elliptical 2-body Keplerian orbits to provide intuitive spatial awareness. Real orbital solutions experience gravitational perturbations from Jupiter and the Sun, causing nodal precession over century timescales.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Asteroid Detail Modal / Drawer -->
+    <div id="asteroid-detail-modal" class="modal-backdrop">
+      <div class="modal-dialog">
+        <div class="modal-header">
+          <div>
+            <div style="font-size: 0.75rem; color: #38bdf8; font-weight: 600; text-transform: uppercase;">Asteroid Telemetry &amp; Analysis</div>
+            <h3 id="modal-asteroid-title" style="font-size: 1.25rem; font-weight: 700; color: #fff;">--</h3>
+          </div>
+          <button id="btn-close-modal" class="modal-close-btn"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="modal-detail-body" class="modal-body">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+
+    <!-- App Footer -->
+    <footer class="app-footer">
+      <div>
+        <b>Asteroid Trajectory &amp; Earth Risk Analysis</b> &bull; NASA JPL Solar System Dynamics (SSD) Data
+      </div>
+      <div>
+        Local Deployment: <span style="color: #38bdf8; font-family: var(--font-mono);">http://127.0.0.1:8000</span>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Application Logic Scripts -->
+  <script src="/static/js/ui_3d.js"></script>
+  <script src="/static/js/orbit_3d.js"></script>
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+{
+  "model_key": "Gradient_Boosting",
+  "model_name": "Gradient Boosting (GBM)",
+  "importances": [
+    {
+      "feature": "moid",
+      "importance": 0.8369
+    },
+    {
+      "feature": "H",
+      "importance": 0.1533
+    },
+    {
+      "feature": "kinetic_energy_mt",
+      "importance": 0.0027
+    },
+    {
+      "feature": "diameter_estimated_km",
+      "importance": 0.0014
+    },
+    {
+      "feature": "semi_minor_axis",
+      "importance": 0.001
+    },
+    {
+      "feature": "i",
+      "importance": 0.0006
+    },
+    {
+      "feature": "perihelion_ratio",
+      "importance": 0.0006
+    },
+    {
+      "feature": "a",
+      "importance": 0.0004
+    },
+    {
+      "feature": "ad",
+      "importance": 0.0004
+    },
+    {
+      "feature": "aphelion_ratio",
+      "importance": 0.0004
+    },
+    {
+      "feature": "eccentricity_sq",
+      "importance": 0.0004
+    },
+    {
+      "feature": "collision_prob_factor",
+      "importance": 0.0004
+    },
+    {
+      "feature": "inclination_rad",
+      "importance": 0.0003
+    },
+    {
+      "feature": "relative_velocity_kms",
+      "importance": 0.0003
+    },
+    {
+      "feature": "e",
+      "importance": 0.0002
+    },
+    {
+      "feature": "q",
+      "importance": 0.0002
+    },
+    {
+      "feature": "per_y",
+      "importance": 0.0002
+    },
+    {
+      "feature": "class_ATE",
+      "importance": 0.0002
+    },
+    {
+      "feature": "orbit_energy",
+      "importance": 0.0001
+    },
+    {
+      "feature": "class_AMO",
+      "importance": 0.0
+    },
+    {
+      "feature": "class_APO",
+      "importance": 0.0
+    },
+    {
+      "feature": "class_IEO",
+      "importance": 0.0
+    }
+  ],
+  "feature_descriptions": {
+    "moid": "Minimum Orbit Intersection Distance to Earth (AU) - strongest orbital collision criterion",
+    "H": "Absolute magnitude (mag) - inversely proportional to physical asteroid size",
+    "diameter_estimated_km": "Estimated physical asteroid diameter (km)",
+    "collision_prob_factor": "Geometrical collision proxy factor based on inclination, MOID, and orbit size",
+    "kinetic_energy_mt": "Estimated potential impact kinetic energy in Megatons of TNT",
+    "relative_velocity_kms": "\u00d6pik-calculated encounter velocity relative to Earth (km/s)",
+    "q": "Perihelion distance (AU) - closest orbital approach to Sun",
+    "a": "Semi-major axis (AU) - mean distance to Sun",
+    "e": "Orbital eccentricity - how stretched the ellipse is",
+    "i": "Orbital inclination (degrees) - angle relative to Earth's orbital plane"
+  }
+}
